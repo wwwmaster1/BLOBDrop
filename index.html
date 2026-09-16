@@ -85,6 +85,7 @@
     let timerInterval = null;
 
     urlInput.addEventListener('input', handleUrlInput);
+    urlInput.addEventListener('change', handleUrlInput);
     fileInput.addEventListener('change', validateFileSelection);
 
     function handleUrlInput() {
