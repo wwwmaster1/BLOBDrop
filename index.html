@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -51,7 +52,7 @@
     
     <div class="form-group">
         <label for="urlInput">1. Paste Presigned PUT URL</label>
-        <input type="text" id="urlInput" placeholder="https://..." autocomplete="off">
+        <input type="text" id="urlInput" placeholder="https://bucket..." autocomplete="off">
         <div id="timerDisplay"></div>
     </div>
 
@@ -97,35 +98,45 @@
             const decodedPath = decodeURIComponent(urlObj.pathname);
             const filename = decodedPath.substring(decodedPath.lastIndexOf('/') + 1);
 
-            if (!filename || filename === "/") throw new Error();
+            if (!filename || filename === "/") throw new Error("Missing filename");
             expectedFileName = filename;
 
             const amzDate = urlObj.searchParams.get('X-Amz-Date');
             const amzExpires = urlObj.searchParams.get('X-Amz-Expires');
 
             if (amzDate && amzExpires) {
-                // Fixed: Clean regular expression parsing to map ISO 8601 formatting accurately
-                const formatted = amzDate.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z\$/, '\$1-\$2-\$3T\$4:\$5:\$6Z');
-                const startTime = new Date(formatted).getTime();
-                const duration = parseInt(amzExpires, 10);
-                
-                if (!isNaN(startTime) && !isNaN(duration)) {
-                    expirationTime = startTime + (duration * 1000);
-                    if (Date.now() >= expirationTime) {
-                        handleExpiration();
-                        return;
+                if (amzDate.length >= 15) {
+                    const year = amzDate.substring(0, 4);
+                    const month = amzDate.substring(4, 6);
+                    const day = amzDate.substring(6, 8);
+                    const hour = amzDate.substring(9, 11);
+                    const minute = amzDate.substring(11, 13);
+                    const second = amzDate.substring(13, 15);
+                    
+                    const formattedISO = year + "-" + month + "-" + day + "T" + hour + ":" + minute + ":" + second + "Z";
+                    const startTime = new Date(formattedISO).getTime();
+                    const duration = parseInt(amzExpires, 10);
+                    
+                    if (!isNaN(startTime) && !isNaN(duration)) {
+                        expirationTime = startTime + (duration * 1000);
+                        if (Date.now() >= expirationTime) {
+                            handleExpiration();
+                            return;
+                        }
+                        startCountdown();
+                    } else {
+                        timerDisplay.innerHTML = '<span style="color:#ee7c00; font-size:12px;">ℹ️ Metadata found but failed to convert timestamp parameters.</span>';
                     }
-                    startCountdown();
                 } else {
-                    timerDisplay.innerHTML = '<span style="color:#ee7c00; font-size:12px;">ℹ️ Metadata found but failed to convert timestamp parameters.</span>';
+                    timerDisplay.innerHTML = '<span style="color:#ee7c00; font-size:12px;">ℹ️ Timestamp length is non-standard.</span>';
                 }
             } else {
                 timerDisplay.innerHTML = '<span style="color:#666; font-size:12px;">ℹ️ No standard X-Amz-Date expiration metadata found.</span>';
             }
 
-            fileInput.setAttribute('accept', `.${filename.split('.').pop()}, ${filename}`);
+            fileInput.setAttribute('accept', "." + filename.split('.').pop() + ", " + filename);
             fileSelectorContainer.style.display = 'block';
-            fileHint.innerHTML = `⚠️ Required file name: <strong style="color:#c00;">${expectedFileName}</strong>`;
+            fileHint.innerHTML = '⚠️ Required file name: <strong style="color:#c00;">' + expectedFileName + '</strong>';
             validateFileSelection();
 
         } catch (e) {
@@ -148,10 +159,10 @@
             const secs = Math.floor((timeLeft % 60000) / 1000);
             const isUrgent = timeLeft < 60000;
             
-            let timeString = `${mins}m ${secs}s`;
-            if (hours > 0) timeString = `${hours}h ` + timeString;
+            let timeString = mins + "m " + secs + "s";
+            if (hours > 0) timeString = hours + "h " + timeString;
 
-            timerDisplay.innerHTML = `<span class="${isUrgent ? 'timer-warning' : 'timer-active'}">⏱️ Link valid for: ${timeString}</span>`;
+            timerDisplay.innerHTML = '<span class="' + (isUrgent ? 'timer-warning' : 'timer-active') + '">⏱️ Link valid for: ' + timeString + '</span>';
         }
         updateTimer();
         timerInterval = setInterval(updateTimer, 1000);
@@ -165,13 +176,21 @@
     }
 
     function validateFileSelection() {
-        const file = fileInput.files[0]; // Fixed: Pull the specific file object out from the list array
+        if (!fileInput.files || fileInput.files.length === 0) { 
+            uploadBtn.disabled = true; 
+            return; 
+        }
+        
+        const file = fileInput.files[0];
         showStatus('');
-        if (!file) { uploadBtn.disabled = true; return; }
-        if (expirationTime && Date.now() >= expirationTime) { handleExpiration(); return; }
+        
+        if (expirationTime && Date.now() >= expirationTime) { 
+            handleExpiration(); 
+            return; 
+        }
 
         if (file.name !== expectedFileName) {
-            showStatus(`Name mismatch! Got "${file.name}" but expected "${expectedFileName}".`, 'error');
+            showStatus('Name mismatch! Got "' + file.name + '" but expected "' + expectedFileName + '".', 'error');
             uploadBtn.disabled = true;
         } else {
             showStatus('Valid file selected!', 'info');
@@ -180,9 +199,12 @@
     }
 
     uploadBtn.addEventListener('click', async () => {
-        const file = fileInput.files[0]; // Fixed: Pull the raw file binary out from index 0
+        if (!fileInput.files || fileInput.files.length === 0) return;
+        const file = fileInput.files[0];
         const uploadUrl = urlInput.value.trim();
-        if (!file || file.name !== expectedFileName) return;
+        
+        if (file.name !== expectedFileName) return;
+        if (expirationTime && Date.now() >= expirationTime) { handleExpiration(); return; }
 
         try {
             uploadBtn.disabled = true;
@@ -197,11 +219,11 @@
                 clearInterval(timerInterval);
                 timerDisplay.innerHTML = '<span style="color:#28a745;">✅ Upload Complete</span>';
             } else {
-                showStatus(`Upload failed: Status ${response.status}`, 'error');
+                showStatus('Upload failed: Status ' + response.status, 'error');
                 uploadBtn.disabled = false;
             }
         } catch (error) {
-            showStatus(`Network Error: ${error.message}. Check S3 CORS configuration.`, 'error');
+            showStatus('Network Error: ' + error.message + '. Check S3 CORS configuration.', 'error');
             uploadBtn.disabled = false;
         }
     });
