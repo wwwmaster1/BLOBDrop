@@ -3,77 +3,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Presigned URL File Uploader</title>
+    <title>S3 Presigned URL File Uploader</title>
     <style>
-        body { font-family: sans-serif; max-width: 500px; margin: 40px auto; padding: 20px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"], input[type="file"] { width: 100%; padding: 8px; box-sizing: border-box; }
-        button { padding: 10px 15px; background: #007bff; color: white; border: none; cursor: pointer; }
-        button:disabled { background: #ccc; }
-        #status { margin-top: 15px; font-weight: bold; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        .card {
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        /* Style to handle the visibility toggle cleanly */
+        .hidden {
+            display: none;
+        }
+        .file-box {
+            border: 2px dashed #cbd5e1;
+            padding: 20px;
+            border-radius: 6px;
+            background: #f8fafc;
+            text-align: center;
+        }
+        .expected-file-badge {
+            display: inline-block;
+            background-color: #e2e8f0;
+            color: #334155;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin-top: 5px;
+            font-size: 13px;
+        }
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 600;
+        }
+        button:disabled {
+            background-color: #93c5fd;
+            cursor: not-allowed;
+        }
+        #statusMessage {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 4px;
+            font-weight: 500;
+            display: none;
+        }
+        .error { background-color: #fee2e2; color: #991b1b; display: block !important; }
+        .success { background-color: #dcfce7; color: #166534; display: block !important; }
+        .info { background-color: #e0f2fe; color: #0369a1; display: block !important; }
     </style>
 </head>
 <body>
 
-    <h2>Upload File via Presigned URL</h2>
+<div class="card">
+    <h2>S3 Presigned URL Uploader</h2>
     
+    <!-- Step 1: Input URL -->
     <div class="form-group">
-        <label for="url">Presigned URL:</label>
-        <input type="text" id="url" placeholder="https://amazonaws.com...">
+        <label for="urlInput">1. Paste Presigned URL</label>
+        <input type="text" id="urlInput" placeholder="https://amazonaws.com..." autocomplete="off">
     </div>
 
-    <div class="form-group">
-        <label for="file">Select File:</label>
-        <input type="file" id="file">
+    <!-- Step 2: File Selector (Hidden & Disabled by default) -->
+    <div id="fileContainer" class="form-group hidden">
+        <div class="file-box">
+            <label for="fileInput">2. Select Your File</label>
+            <p>Required Filename: <span id="expectedFileName" class="expected-file-badge"></span></p>
+            <input type="file" id="fileInput" disabled>
+        </div>
     </div>
 
-    <button id="uploadBtn" onclick="uploadFile()">Upload</button>
+    <!-- Step 3: Upload Action Button -->
+    <button id="uploadBtn" disabled>Upload File</button>
 
-    <div id="status"></div>
+    <!-- Feedback Area -->
+    <div id="statusMessage"></div>
+</div>
 
-    <script>
-        async function uploadFile() {
-            const url = document.getElementById('url').value.trim();
-            const fileInput = document.getElementById('file');
-            const statusDiv = document.getElementById('status');
-            const btn = document.getElementById('uploadBtn');
+<script>
+    const urlInput = document.getElementById('urlInput');
+    const fileContainer = document.getElementById('fileContainer');
+    const fileInput = document.getElementById('fileInput');
+    const expectedFileNameSpan = document.getElementById('expectedFileName');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const statusMessage = document.getElementById('statusMessage');
 
-            if (!url || !fileInput.files.length) {
-                statusDiv.innerText = "Please provide both a URL and a file.";
-                statusDiv.style.color = "red";
-                return;
-            }
+    let targetFileName = '';
 
-            const file = fileInput.files[0];
-            statusDiv.innerText = "Uploading...";
-            statusDiv.style.color = "black";
-            btn.disabled = true;
+    // Listen for inputs/pastes into the URL field
+    urlInput.addEventListener('input', handleUrlInput);
 
-            try {
-                // Presigned URLs typically use PUT requests for direct uploads
-                const response = await fetch(url, {
-                    method: 'PUT',
-                    body: file,
-                    headers: {
-                        'Content-Type': file.type // Ensure this matches the type specified when creating the URL
-                    }
-                });
+    function handleUrlInput() {
+        const urlString = urlInput.value.trim();
+        showStatus('', ''); // Clear status
 
-                if (response.ok) {
-                    statusDiv.innerText = "Upload successful!";
-                    statusDiv.style.color = "green";
-                } else {
-                    statusDiv.innerText = `Upload failed: ${response.status} ${response.statusText}`;
-                    statusDiv.style.color = "red";
-                }
-            } catch (error) {
-                statusDiv.innerText = `Error: ${error.message}`;
-                statusDiv.style.color = "red";
-            } finally {
-                btn.disabled = false;
-            }
+        if (!urlString) {
+            resetFileSelector();
+            return;
         }
-    </script>
+
+        try {
+            const parsedUrl = new URL(urlString);
+            // Extract the filename from the end of the pathname
+            const pathname = parsedUrl.pathname;
+            const filename = pathname.substring(pathname.lastIndexOf('/') + 1);
+
+            if (filename && filename !== '/') {
+                // Decode URL-encoded characters (like %20 to space)
+                targetFileName = decodeURIComponent(filename);
+                
+                // Show and enable the file selector
+                expectedFileNameSpan.textContent = targetFileName;
+                fileContainer.classList.remove('hidden');
+                fileInput.removeAttribute('disabled');
+                
+                // Trigger validation in case a file was already chosen
+                validateFile();
+            } else {
+                throw new Error("Could not extract a valid file name from the URL path.");
+            }
+        } catch (e) {
+            resetFileSelector();
+            showStatus('Invalid URL structure or filename could not be parsed.', 'error');
+        }
+    }
+
+    // Listen for file selections
+    fileInput.addEventListener('change', validateFile);
+
+    function validateFile() {
+        showStatus('', ''); // Clear status
+        const file = fileInput.files[0];
+
+        if (!file) {
+            uploadBtn.setAttribute('disabled', 'true');
+            return;
+        }
+
+        // Enforce matching filenames
+        if (file.name !== targetFileName) {
+            showStatus(`Filename mismatch! Selected: "${file.name}". Expected: "${targetFileName}"`, 'error');
+            uploadBtn.setAttribute('disabled', 'true');
+        } else {
+            showStatus('Filename matches perfectly. Ready to upload.', 'info');
+            uploadBtn.removeAttribute('disabled');
+        }
+    }
+
+    function resetFileSelector() {
+        fileContainer.classList.add('hidden');
+        fileInput.setAttribute('disabled', 'true');
+        fileInput.value = ''; // Clear selected file
+        uploadBtn.setAttribute('disabled', 'true');
+        targetFileName = '';
+    }
+
+    function showStatus(text, type) {
+        statusMessage.className = ''; // Reset classes
+        if (!text) {
+            statusMessage.style.display = 'none';
+            return;
+        }
+        statusMessage.textContent = text;
+        statusMessage.classList.add(type);
+    }
+
+    // Handle the actual upload form submittal
+    uploadBtn.addEventListener('click', async () => {
+        const file = fileInput.files[0];
+        const url = urlInput.value.trim();
+
+        if (!file || !url) return;
+
+        showStatus('Uploading file directly to S3...', 'info');
+        uploadBtn.setAttribute('disabled', 'true');
+        urlInput.setAttribute('disabled', 'true');
+        fileInput.setAttribute('disabled', 'true');
+
+        try {
+            // S3 Presigned URLs for uploads utilize a PUT request
+            const response = await fetch(url, {
+                method: 'PUT',
+                body: file,
+                headers: {
+                    // Match the file content type or fall back to octet-stream
+                    'Content-Type': file.type || 'application/octet-stream'
+                }
+            });
+
+            if (response.ok) {
+                showStatus('Success! File uploaded successfully.', 'success');
+            } else {
+                showStatus(`Upload failed. Server responded with status: ${response.status} ${response.statusText}`, 'error');
+                // Re-enable inputs on failure so they can try again
+                uploadBtn.removeAttribute('disabled');
+                urlInput.removeAttribute('disabled');
+                fileInput.removeAttribute('disabled');
+            }
+        } catch (error) {
+            showStatus(`Network error occurred during upload: ${error.message}`, 'error');
+            uploadBtn.removeAttribute('disabled');
+            urlInput.removeAttribute('disabled');
+            fileInput.removeAttribute('disabled');
+        }
+    });
+</script>
+
 </body>
 </html>
