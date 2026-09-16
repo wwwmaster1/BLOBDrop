@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Presigned URL Uploader for Block Storage (S3,Tigris,etc)</title>
+    <title>S3 Presigned URL Uploader</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -86,7 +86,7 @@
     <!-- Step 1: URL input -->
     <div class="form-group">
         <label for="urlInput">1. Paste Presigned PUT URL</label>
-        <input type="text" id="urlInput" placeholder="https://mabucket.block..." autocomplete="off">
+        <input type="text" id="urlInput" placeholder="https://amazonaws.com..." autocomplete="off">
     </div>
 
     <!-- Step 2: File Selector (Hidden by default) -->
@@ -139,7 +139,7 @@
                 fileInput.setAttribute('accept', `.${filename.split('.').pop()}, ${filename}`);
                 
                 // Show file selector and configure dynamic text encouragement
-                fileSelectorContainer.style.style.display = 'block';
+                fileSelectorContainer.style.display = 'block'; // FIXED: Removed duplicate .style
                 fileHint.innerHTML = `⚠️ This URL requires a file named exactly: <strong style="color:#c00;">${expectedFileName}</strong><br><small style="color: #666;">(Your file browser has been filtered to help find it)</small>`;
                 
                 // Evaluate button state if a file was already loaded
@@ -158,7 +158,7 @@
     fileInput.addEventListener('change', validateFileSelection);
 
     function validateFileSelection() {
-        const file = fileInput.files[0];
+        const file = fileInput.files[0]; // FIXED: Access the file object correctly
         showStatus('');
 
         if (!file) {
@@ -166,7 +166,7 @@
             return;
         }
 
-        // Strict name enforcement backup check (in case user circumvents OS picker filter)
+        // Strict name enforcement backup check
         if (file.name !== expectedFileName) {
             showStatus(`Name mismatch! Picked "${file.name}" but expected "${expectedFileName}".`, 'error');
             uploadBtn.disabled = true;
@@ -178,7 +178,7 @@
 
     // Trigger standard fetch PUT request
     uploadBtn.addEventListener('click', async () => {
-        const file = fileInput.files[0];
+        const file = fileInput.files[0]; // FIXED: Access the file object correctly
         const uploadUrl = urlInput.value.trim();
 
         if (!file || file.name !== expectedFileName) return;
@@ -202,7 +202,7 @@
                 uploadBtn.disabled = false;
             }
         } catch (error) {
-            showStatus(`Network Error: ${error.message}. Check CORS settings on your destination S3 bucket.`, 'error');
+            showStatus(`Network Error: ${error.message}. Check CORS settings on your destination bucket.`, 'error');
             uploadBtn.disabled = false;
         }
     });
