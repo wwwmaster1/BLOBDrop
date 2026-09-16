@@ -67,11 +67,6 @@
 </div>
 
 <script>
-	const urlParams = new URLSearchParams(window.location.search);
-
-	const url = urlParams.get('url');
-	document.getElementById('urlInput').value = url;
-    
     const urlInput = document.getElementById('urlInput');
     const fileSelectorContainer = document.getElementById('fileSelectorContainer');
     const fileInput = document.getElementById('fileInput');
@@ -79,6 +74,9 @@
     const uploadBtn = document.getElementById('uploadBtn');
     const statusDiv = document.getElementById('status');
     const timerDisplay = document.getElementById('timerDisplay');
+	const urlParams = new URLSearchParams(window.location.search);
+	const url = urlParams.get('url');
+	urlInput.value = url;
 
     let expectedFileName = "";
     let expirationTime = null;
