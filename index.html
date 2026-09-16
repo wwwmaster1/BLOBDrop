@@ -11,7 +11,7 @@
             max-width: 600px;
             margin: 40px auto;
             padding: 20px;
-            background-color: #f9f9f9;
+            background-color: #363636;
         }
         .card {
             background: #fff;
@@ -82,10 +82,12 @@
     let timerInterval = null;
 
     urlInput.addEventListener('input', handleUrlInput);
-    urlInput.addEventListener('change', handleUrlInput);
     fileInput.addEventListener('change', validateFileSelection);
-	urlInput.value = url;
-
+	if (url) {
+		urlInput.value = url;
+		urlInput.dispatchEvent(new Event('input'));
+	}
+		
     function handleUrlInput() {
         const urlText = urlInput.value.trim();
         showStatus(''); 
