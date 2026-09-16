@@ -76,7 +76,6 @@
     const timerDisplay = document.getElementById('timerDisplay');
 	const urlParams = new URLSearchParams(window.location.search);
 	const url = urlParams.get('url');
-	urlInput.value = url;
 
     let expectedFileName = "";
     let expirationTime = null;
@@ -85,6 +84,7 @@
     urlInput.addEventListener('input', handleUrlInput);
     urlInput.addEventListener('change', handleUrlInput);
     fileInput.addEventListener('change', validateFileSelection);
+	urlInput.value = url;
 
     function handleUrlInput() {
         const urlText = urlInput.value.trim();
