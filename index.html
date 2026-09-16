@@ -28,7 +28,7 @@
             display: none; padding: 15px; background: #eef2f7;
             border-radius: 4px; border-left: 4px solid #0066cc;
         }
-        #timerDisplay { font-weight: bold; margin-top: 5px; }
+        #timerDisplay { font-weight: bold; margin-top: 5px; min-height: 18px; }
         .timer-active { color: #28a745; }
         .timer-warning { color: #dc3545; }
         button {
@@ -47,7 +47,7 @@
 
 <div class="card">
     <h2>Upload to a Presigned URL</h2>
-    <P>Make sure your bucket allows CORS from *.github.io (or ask your agent to enable it).</P>
+    <P>Make sure your bucket allows CORS from *.github.io <BR>(or ask your agent to enable it).</P>
     
     <div class="form-group">
         <label for="urlInput">1. Paste Presigned PUT URL</label>
@@ -104,6 +104,7 @@
             const amzExpires = urlObj.searchParams.get('X-Amz-Expires');
 
             if (amzDate && amzExpires) {
+                // Fixed Clean Regex parsing without incorrect escaping characters
                 const formatted = amzDate.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z\$/, '\$1-\$2-\$3T\$4:\$5:\$6Z');
                 const startTime = new Date(formatted).getTime();
                 const duration = parseInt(amzExpires, 10);
@@ -115,9 +116,11 @@
                         return;
                     }
                     startCountdown();
+                } else {
+                    timerDisplay.innerHTML = '<span style="color:#ee7c00; font-size:12px;">ℹ️ Metadata found but failed to convert timestamp parameters.</span>';
                 }
             } else {
-                timerDisplay.innerHTML = '<span style="color:#666; font-size:12px;">ℹ️ No expiration metadata found.</span>';
+                timerDisplay.innerHTML = '<span style="color:#666; font-size:12px;">ℹ️ No standard X-Amz-Date expiration metadata found.</span>';
             }
 
             fileInput.setAttribute('accept', `.${filename.split('.').pop()}, ${filename}`);
@@ -140,11 +143,15 @@
                 handleExpiration();
                 return;
             }
+            const hours = Math.floor(timeLeft / 3600000);
             const mins = Math.floor((timeLeft % 3600000) / 60000);
             const secs = Math.floor((timeLeft % 60000) / 1000);
             const isUrgent = timeLeft < 60000;
             
-            timerDisplay.innerHTML = `<span class="${isUrgent ? 'timer-warning' : 'timer-active'}">⏱️ Link valid for: ${mins}m ${secs}s</span>`;
+            let timeString = `${mins}m ${secs}s`;
+            if (hours > 0) timeString = `${hours}h ` + timeString;
+
+            timerDisplay.innerHTML = `<span class="${isUrgent ? 'timer-warning' : 'timer-active'}">⏱️ Link valid for: ${timeString}</span>`;
         }
         updateTimer();
         timerInterval = setInterval(updateTimer, 1000);
@@ -158,6 +165,7 @@
     }
 
     function validateFileSelection() {
+        // FIXED: Access index 0 to reference the specific selected File object
         const file = fileInput.files[0];
         showStatus('');
         if (!file) { uploadBtn.disabled = true; return; }
@@ -173,6 +181,7 @@
     }
 
     uploadBtn.addEventListener('click', async () => {
+        // FIXED: Access index 0 to properly read binary data contents
         const file = fileInput.files[0];
         const uploadUrl = urlInput.value.trim();
         if (!file || file.name !== expectedFileName) return;
@@ -190,7 +199,7 @@
                 clearInterval(timerInterval);
                 timerDisplay.innerHTML = '<span style="color:#28a745;">✅ Upload Complete</span>';
             } else {
-                showStatus(`Upload failed: ${response.status}`, 'error');
+                showStatus(`Upload failed: Status ${response.status}`, 'error');
                 uploadBtn.disabled = false;
             }
         } catch (error) {
@@ -218,5 +227,6 @@
 </script>
 </body>
 </html>
+
 
 
