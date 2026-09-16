@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presigned URL File Uploader</title>
+    <style>
+        body { font-family: sans-serif; max-width: 500px; margin: 40px auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="file"] { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { padding: 10px 15px; background: #007bff; color: white; border: none; cursor: pointer; }
+        button:disabled { background: #ccc; }
+        #status { margin-top: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h2>Upload File via Presigned URL</h2>
+    
+    <div class="form-group">
+        <label for="url">Presigned URL:</label>
+        <input type="text" id="url" placeholder="https://amazonaws.com...">
+    </div>
+
+    <div class="form-group">
+        <label for="file">Select File:</label>
+        <input type="file" id="file">
+    </div>
+
+    <button id="uploadBtn" onclick="uploadFile()">Upload</button>
+
+    <div id="status"></div>
+
+    <script>
+        async function uploadFile() {
+            const url = document.getElementById('url').value.trim();
+            const fileInput = document.getElementById('file');
+            const statusDiv = document.getElementById('status');
+            const btn = document.getElementById('uploadBtn');
+
+            if (!url || !fileInput.files.length) {
+                statusDiv.innerText = "Please provide both a URL and a file.";
+                statusDiv.style.color = "red";
+                return;
+            }
+
+            const file = fileInput.files[0];
+            statusDiv.innerText = "Uploading...";
+            statusDiv.style.color = "black";
+            btn.disabled = true;
+
+            try {
+                // Presigned URLs typically use PUT requests for direct uploads
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    body: file,
+                    headers: {
+                        'Content-Type': file.type // Ensure this matches the type specified when creating the URL
+                    }
+                });
+
+                if (response.ok) {
+                    statusDiv.innerText = "Upload successful!";
+                    statusDiv.style.color = "green";
+                } else {
+                    statusDiv.innerText = `Upload failed: ${response.status} ${response.statusText}`;
+                    statusDiv.style.color = "red";
+                }
+            } catch (error) {
+                statusDiv.innerText = `Error: ${error.message}`;
+                statusDiv.style.color = "red";
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
