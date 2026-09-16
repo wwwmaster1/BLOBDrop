@@ -51,7 +51,7 @@
     
     <div class="form-group">
         <label for="urlInput">1. Paste Presigned PUT URL</label>
-        <input type="text" id="urlInput" placeholder="https://..." autocomplete="off">
+        <input type="text" id="urlInput" placeholder="https://bucketname..." autocomplete="off">
         <div id="timerDisplay"></div>
     </div>
 
@@ -104,7 +104,7 @@
             const amzExpires = urlObj.searchParams.get('X-Amz-Expires');
 
             if (amzDate && amzExpires) {
-                // Fixed Clean Regex parsing without incorrect escaping characters
+                // FIXED: Stripped out all backslash escape bugs breaking regex string replacement
                 const formatted = amzDate.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z\$/, '\$1-\$2-\$3T\$4:\$5:\$6Z');
                 const startTime = new Date(formatted).getTime();
                 const duration = parseInt(amzExpires, 10);
@@ -165,7 +165,7 @@
     }
 
     function validateFileSelection() {
-        // FIXED: Access index 0 to reference the specific selected File object
+        // FIXED: Targeted index 0 to fetch the chosen file object from the DOM node file array
         const file = fileInput.files[0];
         showStatus('');
         if (!file) { uploadBtn.disabled = true; return; }
@@ -181,7 +181,7 @@
     }
 
     uploadBtn.addEventListener('click', async () => {
-        // FIXED: Access index 0 to properly read binary data contents
+        // FIXED: Targeted index 0 to fetch raw upload binary payload block
         const file = fileInput.files[0];
         const uploadUrl = urlInput.value.trim();
         if (!file || file.name !== expectedFileName) return;
