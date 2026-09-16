@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Presigned URL Uploader to Block Storage (S3,Tigris,R2,etc.)</title>
+    <title>Presigned URL Uploader to Block Storage (S3,Tigris,R2,etc.) - Web Based simply & free.</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             max-width: 600px;
             margin: 40px auto;
             padding: 20px;
             background-color: #f9f9f9;
-            color: #333;
         }
         .card {
             background: #fff;
@@ -19,67 +18,26 @@
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        h2 {
-            margin-top: 0;
-            color: #111;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; }
         input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-size: 14px;
+            width: 100%; padding: 10px; border: 1px solid #ccc;
+            border-radius: 4px; box-sizing: border-box;
         }
         #fileSelectorContainer {
-            display: none; /* Hidden by default */
-            padding: 15px;
-            background: #eef2f7;
-            border-radius: 4px;
-            border-left: 4px solid #0066cc;
+            display: none; padding: 15px; background: #eef2f7;
+            border-radius: 4px; border-left: 4px solid #0066cc;
         }
-        .hint {
-            font-size: 13px;
-            color: #555;
-            margin-bottom: 8px;
-        }
-        #timerDisplay {
-            font-weight: bold;
-            margin-top: 5px;
-            font-size: 14px;
-        }
+        #timerDisplay { font-weight: bold; margin-top: 5px; }
         .timer-active { color: #28a745; }
-        .timer-warning { color: #dc3545; font-weight: bold; }
+        .timer-warning { color: #dc3545; }
         button {
-            background-color: #0066cc;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            font-size: 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            font-weight: bold;
+            background-color: #0066cc; color: white; border: none;
+            padding: 12px 20px; border-radius: 4px; cursor: pointer;
+            width: 100%; font-weight: bold; font-size: 16px;
         }
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        #status {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 4px;
-            display: none;
-            font-weight: 500;
-        }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        #status { margin-top: 15px; padding: 10px; border-radius: 4px; display: none; }
         .success { background-color: #d4edda; color: #155724; }
         .error { background-color: #f8d7da; color: #721c24; }
         .info { background-color: #e2e3e5; color: #383d41; }
@@ -88,26 +46,22 @@
 <body>
 
 <div class="card">
-    <h2>S3 Target Upload</h2>
+    <h2>Upload to a Presigned URL</h2>
+    <P>Make sure your bucket allows CORS from *.github.io (or ask your agent to enable it).</P>
     
-    <!-- Step 1: URL input -->
     <div class="form-group">
         <label for="urlInput">1. Paste Presigned PUT URL</label>
-        <input type="text" id="urlInput" placeholder="https://maBlock.store..." autocomplete="off">
+        <input type="text" id="urlInput" placeholder="https://..." autocomplete="off">
         <div id="timerDisplay"></div>
     </div>
 
-    <!-- Step 2: File Selector (Hidden by default) -->
     <div id="fileSelectorContainer" class="form-group">
         <label for="fileInput">2. Select Your File</label>
-        <div class="hint" id="fileHint">Please select a file.</div>
+        <div id="fileHint" style="font-size:13px; margin-bottom:8px;"></div>
         <input type="file" id="fileInput">
     </div>
 
-    <!-- Step 3: Action button -->
     <button id="uploadBtn" disabled>Upload File</button>
-
-    <!-- Status reporting UI -->
     <div id="status"></div>
 </div>
 
@@ -124,13 +78,13 @@
     let expirationTime = null;
     let timerInterval = null;
 
-    // Monitor input modifications (paste/type)
     urlInput.addEventListener('input', handleUrlInput);
+    fileInput.addEventListener('change', validateFileSelection);
 
     function handleUrlInput() {
         const urlText = urlInput.value.trim();
-        showStatus(''); // Reset status alerts
-        clearInterval(timerInterval); // Stop previous timer
+        showStatus(''); 
+        clearInterval(timerInterval); 
         timerDisplay.innerHTML = '';
 
         if (!urlText) {
@@ -141,55 +95,34 @@
         try {
             const urlObj = new URL(urlText);
             const decodedPath = decodeURIComponent(urlObj.pathname);
-            
-            // Extract the final segment of the path (the filename)
             const filename = decodedPath.substring(decodedPath.lastIndexOf('/') + 1);
 
-            if (!filename || filename === "/") {
-                throw new Error("Could not find a valid file target name in the URL path.");
-            }
-
+            if (!filename || filename === "/") throw new Error();
             expectedFileName = filename;
 
-            // PARSE AWS EXPIRATION
             const amzDate = urlObj.searchParams.get('X-Amz-Date');
             const amzExpires = urlObj.searchParams.get('X-Amz-Expires');
 
             if (amzDate && amzExpires) {
-                // AWS ISO 8601 Basic Format parsing: YYYYMMDDTHHMMSSZ
-                // Standard JS can parse this if formatting highlights standard segments
-                const formattedDateStr = amzDate.replace(
-                    /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/,
-                    '$1-$2-$3T$4:$5:$6Z'
-                );
+                const formatted = amzDate.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z\$/, '\$1-\$2-\$3T\$4:\$5:\$6Z');
+                const startTime = new Date(formatted).getTime();
+                const duration = parseInt(amzExpires, 10);
                 
-                const startTime = new Date(formattedDateStr).getTime();
-                const durationSeconds = parseInt(amzExpires, 10);
-                
-                if (!isNaN(startTime) && !isNaN(durationSeconds)) {
-                    expirationTime = startTime + (durationSeconds * 1000);
-                    
-                    // Initial check to prevent UI revealing if it's already expired
+                if (!isNaN(startTime) && !isNaN(duration)) {
+                    expirationTime = startTime + (duration * 1000);
                     if (Date.now() >= expirationTime) {
                         handleExpiration();
                         return;
                     }
-                    
-                    // Start live ticker loop
                     startCountdown();
                 }
             } else {
-                timerDisplay.innerHTML = '<span style="color: #666; font-size:12px;">ℹ️ No expiration metadata detected in URL params.</span>';
+                timerDisplay.innerHTML = '<span style="color:#666; font-size:12px;">ℹ️ No expiration metadata found.</span>';
             }
 
-            // DYNAMIC FILTERING: Force the OS file chooser to look for this exact filename
             fileInput.setAttribute('accept', `.${filename.split('.').pop()}, ${filename}`);
-            
-            // Show file selector and configure dynamic text encouragement
             fileSelectorContainer.style.display = 'block';
-            fileHint.innerHTML = `⚠️ This URL requires a file named exactly: <strong style="color:#c00;">${expectedFileName}</strong><br><small style="color: #666;">(Your file browser has been filtered to help find it)</small>`;
-            
-            // Evaluate button state if a file was already loaded
+            fileHint.innerHTML = `⚠️ Required file name: <strong style="color:#c00;">${expectedFileName}</strong>`;
             validateFileSelection();
 
         } catch (e) {
@@ -201,30 +134,18 @@
 
     function startCountdown() {
         function updateTimer() {
-            const now = Date.now();
-            const timeLeft = expirationTime - now;
-
+            const timeLeft = expirationTime - Date.now();
             if (timeLeft <= 0) {
                 clearInterval(timerInterval);
                 handleExpiration();
                 return;
             }
-
-            // Standard clock calculations
-            const hours = Math.floor(timeLeft / (1000 * 60 * 60));
-            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-
-            let timeString = `${minutes}m ${seconds}s`;
-            if (hours > 0) timeString = `${hours}h ` + timeString;
-
-            const isUrgent = timeLeft < 60000; // less than 1 minute left
-            const classStyle = isUrgent ? 'timer-warning' : 'timer-active';
-            const alertPrefix = isUrgent ? '⏰ Expiring soon: ' : '⏱️ URL valid for: ';
-
-            timerDisplay.innerHTML = `<span class="${classStyle}">${alertPrefix}${timeString}</span>`;
+            const mins = Math.floor((timeLeft % 3600000) / 60000);
+            const secs = Math.floor((timeLeft % 60000) / 1000);
+            const isUrgent = timeLeft < 60000;
+            
+            timerDisplay.innerHTML = `<span class="${isUrgent ? 'timer-warning' : 'timer-active'}">⏱️ Link valid for: ${mins}m ${secs}s</span>`;
         }
-
         updateTimer();
         timerInterval = setInterval(updateTimer, 1000);
     }
@@ -233,50 +154,69 @@
         timerDisplay.innerHTML = '<span class="timer-warning">❌ URL EXPIRED</span>';
         fileSelectorContainer.style.display = 'none';
         uploadBtn.disabled = true;
-        showStatus('This presigned URL has expired. Please generate a new link.', 'error');
+        showStatus('This presigned URL has expired.', 'error');
     }
-
-    // Monitor file picking changes
-    fileInput.addEventListener('change', validateFileSelection);
 
     function validateFileSelection() {
         const file = fileInput.files[0];
         showStatus('');
+        if (!file) { uploadBtn.disabled = true; return; }
+        if (expirationTime && Date.now() >= expirationTime) { handleExpiration(); return; }
 
-        if (!file) {
-            uploadBtn.disabled = true;
-            return;
-        }
-
-        // Final check against dynamic expiration race conditions
-        if (expirationTime && Date.now() >= expirationTime) {
-            handleExpiration();
-            return;
-        }
-
-        // Strict name enforcement backup check
         if (file.name !== expectedFileName) {
-            showStatus(`Name mismatch! Picked "${file.name}" but expected "${expectedFileName}".`, 'error');
+            showStatus(`Name mismatch! Got "${file.name}" but expected "${expectedFileName}".`, 'error');
             uploadBtn.disabled = true;
         } else {
-            showStatus(`Valid file selected! Ready to upload.`, 'info');
+            showStatus('Valid file selected!', 'info');
             uploadBtn.disabled = false;
         }
     }
 
-    // Trigger standard fetch PUT request
     uploadBtn.addEventListener('click', async () => {
         const file = fileInput.files[0];
         const uploadUrl = urlInput.value.trim();
-
         if (!file || file.name !== expectedFileName) return;
-
-        if (expirationTime && Date.now() >= expirationTime) {
-            handleExpiration();
-            return;
-        }
 
         try {
             uploadBtn.disabled = true;
-            showStatus('Uploading file directly to destination...', 'info');
+            showStatus('Uploading file...', 'info');
+            const response = await fetch(uploadUrl, {
+                method: 'PUT',
+                body: file,
+                headers: { 'Content-Type': file.type || 'application/octet-stream' }
+            });
+            if (response.ok) {
+                showStatus('Success! File uploaded successfully.', 'success');
+                clearInterval(timerInterval);
+                timerDisplay.innerHTML = '<span style="color:#28a745;">✅ Upload Complete</span>';
+            } else {
+                showStatus(`Upload failed: ${response.status}`, 'error');
+                uploadBtn.disabled = false;
+            }
+        } catch (error) {
+            showStatus(`Network Error: ${error.message}. Check S3 CORS configuration.`, 'error');
+            uploadBtn.disabled = false;
+        }
+    });
+
+    function resetForm() {
+        fileSelectorContainer.style.display = 'none';
+        fileInput.value = '';
+        fileInput.removeAttribute('accept');
+        uploadBtn.disabled = true;
+        expectedFileName = "";
+        expirationTime = null;
+        clearInterval(timerInterval);
+    }
+
+    function showStatus(message, type) {
+        if (!message) { statusDiv.style.display = 'none'; return; }
+        statusDiv.className = type;
+        statusDiv.textContent = message;
+        statusDiv.style.display = 'block';
+    }
+</script>
+</body>
+</html>
+
 
