@@ -70,7 +70,7 @@
 </head>
 <body>
 <!-- Full-screen visual drop indicator (hidden by default) -->
-<div id="dropOverlay" class="overlay">
+	<div id="dropOverlay" class="overlay">Drop <span id="expectedFile"></span></div>
 	<div class="card">
 	    <h2>Upload to a Presigned URL</h2>
 	    <P>Make sure your bucket allows CORS from *.github.io <BR>(or ask your agent to enable it).</P>
@@ -91,7 +91,6 @@
 	    <button id="uploadBtn" disabled>Upload File</button>
 	    <div id="status"></div>
 	</div>
-</div>
 
 <script>
     const urlInput = document.getElementById('urlInput');
