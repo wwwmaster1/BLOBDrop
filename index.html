@@ -42,7 +42,7 @@
         .error { background-color: #f8d7da; color: #721c24; }
         .info { background-color: #e2e3e5; color: #383d41; }
 		
-		  #drop-overlay {
+		#drop-overlay {
 		    position: fixed;
 		    top: 0;
 		    left: 0;
@@ -61,8 +61,8 @@
 		    transition: opacity 0.2s ease, visibility 0.2s ease;
 		  }
 		  
-		  /* Active class when dragging */
-		  body.dragging #drop-overlay {
+		/* Active class when dragging */
+		body.dragging #drop-overlay {
 		    opacity: 1;
 		    visibility: visible;
 		  }
@@ -71,28 +71,26 @@
 <body>
 <!-- Full-screen visual drop indicator (hidden by default) -->
 <div id="dropOverlay" class="overlay">
-  <div class="drop-message">Drop your file anywhere on the screen!</div>
-</div>
+	<div class="card">
+	    <h2>Upload to a Presigned URL</h2>
+	    <P>Make sure your bucket allows CORS from *.github.io <BR>(or ask your agent to enable it).</P>
+	    
+	    <div class="form-group">
+	        <label for="urlInput">1. Paste Presigned PUT URL</label>
+	        <input type="text" id="urlInput" placeholder="https://bucket..." autocomplete="off">
+	        <div id="timerDisplay"></div>
+	    </div>
 	
-<div class="card">
-    <h2>Upload to a Presigned URL</h2>
-    <P>Make sure your bucket allows CORS from *.github.io <BR>(or ask your agent to enable it).</P>
-    
-    <div class="form-group">
-        <label for="urlInput">1. Paste Presigned PUT URL</label>
-        <input type="text" id="urlInput" placeholder="https://bucket..." autocomplete="off">
-        <div id="timerDisplay"></div>
-    </div>
-
-    <div id="fileSelectorContainer" class="form-group">
-        <label for="fileInput">2. Select Your File</label>
-		
-        <div id="fileHint" style="font-size:13px; margin-bottom:8px;"></div>
-        <input type="file" id="fileInput">
-    </div>
-
-    <button id="uploadBtn" disabled>Upload File</button>
-    <div id="status"></div>
+	    <div id="fileSelectorContainer" class="form-group">
+	        <label for="fileInput">2. Select Your File</label>
+			
+	        <div id="fileHint" style="font-size:13px; margin-bottom:8px;"></div>
+	        <input type="file" id="fileInput">
+	    </div>
+	
+	    <button id="uploadBtn" disabled>Upload File</button>
+	    <div id="status"></div>
+	</div>
 </div>
 
 <script>
@@ -307,7 +305,8 @@
     counter = 0;
     document.body.classList.remove('dragging');
     
-    fileInput.files = e.dataTransfer.files;
+    const files = e.dataTransfer.files;
+    fileInput.files = files;
     console.log('Dropped files:', files);
 	uploadBtn.dispatchEvent(new Event('click'));
 	  
