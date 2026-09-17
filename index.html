@@ -307,9 +307,7 @@
     
     const files = e.dataTransfer.files;
     fileInput.files = files;
-    console.log('Dropped files:', files);
-	uploadBtn.dispatchEvent(new Event('click'));
-	  
+    validateFileSelection();
   });
 
 	
