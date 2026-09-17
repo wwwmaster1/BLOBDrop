@@ -70,7 +70,7 @@
 </head>
 <body>
 <!-- Full-screen visual drop indicator (hidden by default) -->
-	<div id="dropOverlay" class="overlay">Drop <span id="expectedFile"></span></div>
+	<div id="dropOverlay" class="overlay">Drop Only <span id="fileClue"></span></div>
 	<div class="card">
 	    <h2>Upload to a Presigned URL</h2>
 	    <P>Make sure your bucket allows CORS from *.github.io <BR>(or ask your agent to enable it).</P>
@@ -82,7 +82,7 @@
 	    </div>
 	
 	    <div id="fileSelectorContainer" class="form-group">
-	        <label for="fileInput">2. Select Your File</label>
+	        <label for="fileInput">2. Select Your File or Drop it Anywhere in this window</label>
 			
 	        <div id="fileHint" style="font-size:13px; margin-bottom:8px;"></div>
 	        <input type="file" id="fileInput">
@@ -97,6 +97,7 @@
     const fileSelectorContainer = document.getElementById('fileSelectorContainer');
     const fileInput = document.getElementById('fileInput');
     const fileHint = document.getElementById('fileHint');
+    const fileClue = document.getElementById('fileClue');
     const uploadBtn = document.getElementById('uploadBtn');
     const statusDiv = document.getElementById('status');
     const timerDisplay = document.getElementById('timerDisplay');
@@ -132,6 +133,7 @@
 
             if (!filename || filename === "/") throw new Error("Missing filename");
             expectedFileName = filename;
+			fileClue.innerHTML = filename;
 
             const amzDate = urlObj.searchParams.get('X-Amz-Date');
             const amzExpires = urlObj.searchParams.get('X-Amz-Expires');
