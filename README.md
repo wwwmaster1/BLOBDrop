@@ -16,7 +16,7 @@ https://wwwmaster1.github.io/BLOBDrop/?url=https%3A%2F%2Fbucket.fly.storage.tigr
 
 ## Requirements
 
-Cloud based Block Storage (Object Storage, Buckets, S3, etc) allow you to create a pre-signed URL which means the system will allow anyone with this link to upload a file with a specific name and within an allowed timeframe to the storage location via the `PUT` method.
+Cloud based Object Storage (Object Storage, Buckets, S3, etc) allow you to create a pre-signed URL which means the system will allow anyone with this link to upload a file with a specific name and within an allowed timeframe to the storage location via the `PUT` method.
 
 - Your bucket server MUST allow CORS from wherever this page is hosted.
 - User MUST have a valid signed link, do not mess with it.
