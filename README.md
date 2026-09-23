@@ -1,6 +1,6 @@
-# Web Based Block Storage Uploader (Browser to Bucket)
+# Web Based Object Storage Uploader (Browser to Bucket)
 
-This is a clean and simple way to upload a file to block storage (S3 or compatible... Tigris, R2, etc.) via a simple browser interface. It is commonly used by resourceful AI Agents to provide a place for their human users to SAFELY upload a file via the browser, assuming it has the appropriate Keys and Tools to do so. To use this repo, first create a signed URL, then send it to the human over chat, email or other text based interface along with the demo link below...
+This is a clean and simple way to upload a file to object storage (S3 or compatible... Tigris, R2, etc.) via a simple browser interface. It is commonly used by resourceful AI Agents to provide a place for their human users to SAFELY upload a file via the browser, assuming it has the appropriate Keys and Tools to do so. To use this repo, first create a signed URL, then send it to the human over chat, email or other text based interface along with the demo link below...
 
 [Demo](https://wwwmaster1.github.io/BlockStoreUpload/)
 
